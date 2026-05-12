@@ -4,17 +4,18 @@
 
 ## 功能特性
 
-- 📁 文件树浏览（仅显示 .md 和 .html 文件）
-- 📝 Markdown 实时渲染（服务端 marked + highlight.js）
-- 🔒 登录认证（bcrypt + session）
-- 🌐 文件级公开/私有控制
-- 🔍 文件名和内容搜索
-- 📱 响应式布局
+- 文件树浏览（仅显示 .md 和 .html 文件）
+- Markdown 实时渲染（服务端 marked + highlight.js）
+- HTML 沉浸式阅读（原样渲染，悬浮侧边栏/顶栏）
+- 登录认证（bcrypt + session）
+- 文件级公开/私有控制
+- 文件名和内容搜索
+- 响应式布局
 
 ## 本地开发
 
 ```bash
-# 安装根目录依赖（concurrently）
+# 安装依赖
 npm install
 
 # 同时启动前后端开发服务器
@@ -24,35 +25,50 @@ npm run dev
 - 前端：http://localhost:5173
 - 后端 API：http://localhost:3000
 
-## 生产部署（NAS + Docker）
+## Docker 部署
 
-### 1. 配置环境变量
+### 1. 准备环境变量
 
-复制 `.env.example` 并根据实际情况修改：
+复制 `.env.example` 为 `.env` 并修改：
+
+```bash
+cp .env.example .env
+```
 
 ```bash
 KB_ROOT=/path/to/your/kb
 SESSION_SECRET=your-super-secret-key
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=your-secure-password
-CF_TUNNEL_TOKEN=your-cloudflare-tunnel-token
 ```
 
-### 2. 使用 Docker Compose 启动
+### 2. 一键部署
 
 ```bash
-docker-compose up -d
+chmod +x deploy.sh
+./deploy.sh
 ```
 
-### 3. Cloudflare Tunnel 配置
+### 3. 手动部署
 
-1. 在 Cloudflare Zero Trust 中创建 Tunnel
-2. 配置 Public Hostname 指向 `http://kb-web:3000`
-3. 将 Tunnel Token 填入 `.env` 的 `CF_TUNNEL_TOKEN`
+```bash
+# 构建镜像
+docker compose build
 
-### 4. 首次使用
+# 启动服务
+docker compose up -d
 
-默认账号密码为 `admin` / `changeme`（可在环境变量中修改）。
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+```
+
+### 4. 数据持久化
+
+- 知识库文件：`KB_ROOT` 挂载为只读 (`/kb:ro`)
+- 用户和权限数据：Docker volume `kb-data` 自动挂载到 `/app/backend/data`
 
 ## 项目结构
 
@@ -69,6 +85,7 @@ docker-compose up -d
 ├── sample-kb/         # 示例知识库
 ├── Dockerfile
 ├── docker-compose.yml
+├── deploy.sh
 └── .env.example
 ```
 
@@ -76,5 +93,4 @@ docker-compose up -d
 
 - 生产环境务必修改 `SESSION_SECRET`
 - 首次启动后修改默认密码
-- 通过 Cloudflare Tunnel 暴露服务，无需开放 NAS 端口
 - 所有文件路径经过安全校验，防止目录遍历攻击

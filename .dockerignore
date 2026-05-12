@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Environment & secrets
+.env
+.env.example
+
+# Development
+.claude/
+tests/
+test-results/
+screenshot*.js
+screenshot*.mjs
+check-*.mjs
+*.png
+*.jpg
+*.log
+
+# Build output (frontend/dist is built inside Docker)
+frontend/dist/
+
+# Documentation
+README.md
+CLAUDE.md
+
+# Playwright
+playwright.config.js
