@@ -70,6 +70,35 @@ docker compose down
 - 知识库文件：`KB_ROOT` 挂载为只读 (`/kb:ro`)
 - 用户和权限数据：Docker volume `kb-data` 自动挂载到 `/app/backend/data`
 
+### 5. 修改用户名和密码
+
+**首次部署前设置（推荐）**
+
+在 `.env` 中修改 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD`，然后启动容器。系统会在首次运行时自动生成密码哈希文件：
+
+```bash
+ADMIN_USERNAME=yourname
+ADMIN_PASSWORD=yourpass
+```
+
+**已运行后修改密码**
+
+用户名和密码在首次启动时写入持久化 volume，修改需要重置用户数据：
+
+```bash
+# 停止并删除旧容器
+docker compose down
+
+# 删除用户数据 volume（权限数据会保留，仅重置登录凭据）
+docker volume rm kb-web_kb-data
+
+# 修改 .env 中的用户名和密码
+vim .env
+
+# 重新启动，系统会重新生成用户文件
+docker compose up -d
+```
+
 ## 项目结构
 
 ```
