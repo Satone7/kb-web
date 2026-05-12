@@ -1,6 +1,42 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../api.js'
 
+export function useCodes() {
+  const [codeToPath, setCodeToPath] = useState({})
+  const [pathToCode, setPathToCode] = useState({})
+
+  const fetchCodes = useCallback(async () => {
+    try {
+      const res = await api.get('/codes/')
+      const ctp = res.data
+      const ptc = {}
+      for (const [code, p] of Object.entries(ctp)) {
+        ptc[p] = code
+      }
+      setCodeToPath(ctp)
+      setPathToCode(ptc)
+    } catch {
+      setCodeToPath({})
+      setPathToCode({})
+    }
+  }, [])
+
+  const getOrCreateCode = useCallback(async (filePath) => {
+    if (pathToCode[filePath]) return pathToCode[filePath]
+    const res = await api.post('/codes/', { path: filePath })
+    const code = res.data.code
+    setCodeToPath(prev => ({ ...prev, [code]: filePath }))
+    setPathToCode(prev => ({ ...prev, [filePath]: code }))
+    return code
+  }, [pathToCode])
+
+  const resolveCode = useCallback((code) => {
+    return codeToPath[code] || null
+  }, [codeToPath])
+
+  return { codeToPath, pathToCode, fetchCodes, getOrCreateCode, resolveCode }
+}
+
 export function useFileTree() {
   const [tree, setTree] = useState(null)
   const [loading, setLoading] = useState(true)

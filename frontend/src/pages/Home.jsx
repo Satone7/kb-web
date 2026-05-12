@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import Header from '../components/Header.jsx'
 import FileTree from '../components/FileTree.jsx'
 import FileViewer from '../components/FileViewer.jsx'
 import PermissionToggle from '../components/PermissionToggle.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { useFileTree, useFileContent, usePermissions } from '../hooks/useFiles.js'
+import { useFileTree, useFileContent, usePermissions, useCodes } from '../hooks/useFiles.js'
 import api from '../api.js'
 
 export default function Home() {
@@ -13,12 +13,15 @@ export default function Home() {
   const { tree, loading: treeLoading, error: treeError, fetchTree } = useFileTree()
   const { content, loading: contentLoading, error: contentError, fetchContent } = useFileContent()
   const { permissions, fetchPermissions, publicDirectory, toggleFile } = usePermissions()
+  const { codeToPath, fetchCodes, getOrCreateCode } = useCodes()
   const [selectedPath, setSelectedPath] = useState('')
   const [searchResults, setSearchResults] = useState(null)
   const [publicTree, setPublicTree] = useState(null)
-  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const params = useParams()
   const [barsExpanded, setBarsExpanded] = useState(false)
   const collapseTimerRef = useRef(null)
+  const resolvedRef = useRef({})
 
   const expandBars = useCallback(() => {
     if (collapseTimerRef.current) {
@@ -45,8 +48,9 @@ export default function Home() {
     if (user) {
       fetchTree()
       fetchPermissions()
+      fetchCodes()
     }
-  }, [fetchTree, fetchPermissions, user])
+  }, [fetchTree, fetchPermissions, fetchCodes, user])
 
   useEffect(() => {
     if (!user) {
@@ -58,25 +62,41 @@ export default function Home() {
     }
   }, [user])
 
-  // Sync content with URL ?file= param
+  // Sync content with URL path (e.g. /Yu7E7a)
   useEffect(() => {
-    const fileFromUrl = searchParams.get('file')
-    if (fileFromUrl) {
-      if (selectedPath !== fileFromUrl) {
-        setSelectedPath(fileFromUrl)
-      }
-      fetchContent(fileFromUrl)
-    } else {
-      if (selectedPath) {
-        setSelectedPath('')
-      }
+    const codeFromUrl = params['*'] || ''
+    if (!codeFromUrl) {
+      if (selectedPath) setSelectedPath('')
+      return
     }
-  }, [searchParams])
+    const path = codeToPath[codeFromUrl] || resolvedRef.current[codeFromUrl]
+    if (path) {
+      if (selectedPath !== path) setSelectedPath(path)
+      fetchContent(path)
+      return
+    }
+    // Anonymous users don't have cached codes; resolve on demand
+    api.get(`/codes/${encodeURIComponent(codeFromUrl)}`)
+      .then(res => {
+        const p = res.data.path
+        resolvedRef.current[codeFromUrl] = p
+        if (selectedPath !== p) setSelectedPath(p)
+        fetchContent(p)
+      })
+      .catch(() => {
+        if (selectedPath) setSelectedPath('')
+      })
+  }, [params, codeToPath, selectedPath, fetchContent])
 
-  const handleSelect = useCallback((path) => {
+  const handleSelect = useCallback(async (path) => {
     setSearchResults(null)
-    setSearchParams({ file: path })
-  }, [setSearchParams])
+    try {
+      const code = await getOrCreateCode(path)
+      navigate('/' + code)
+    } catch (err) {
+      console.error('Failed to get code:', err)
+    }
+  }, [getOrCreateCode, navigate])
 
   const handleSearch = useCallback(async (query) => {
     if (!query) {

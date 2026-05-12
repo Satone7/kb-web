@@ -39,6 +39,7 @@ app.use(session({
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/files', require('./routes/files'));
 app.use('/api/permissions', require('./routes/permissions'));
+app.use('/api/codes', require('./routes/codes'));
 
 // Public tree endpoint (only shows public files for anonymous)
 app.get('/api/public/tree', (req, res) => {
