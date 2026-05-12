@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  kb-web:
+    build: .
+    container_name: kb-web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ${KB_ROOT:-./sample-kb}:/kb:ro
+      - ./backend/data:/app/backend/data
+    environment:
+      - KB_ROOT=/kb
+      - PORT=3000
+      - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: kb-web-tunnel
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - kb-web
