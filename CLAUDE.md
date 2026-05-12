@@ -101,7 +101,7 @@ PermissionToggle → GET/POST /api/permissions/{path}
 ## Environment
 
 开发环境 `.env`:
-- `KB_ROOT=/mnt/nas/database/backups/desktop-wsp/knowledgeBase`（NAS CIFS 挂载）
+- `KB_ROOT=/path/to/your/knowledge-base`
 - `ADMIN_USERNAME=admin` / `ADMIN_PASSWORD=admin`
 - `SESSION_SECRET` 生产环境务必更换
 
