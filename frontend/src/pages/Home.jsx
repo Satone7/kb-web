@@ -5,13 +5,14 @@ import FileTree from '../components/FileTree.jsx'
 import FileViewer from '../components/FileViewer.jsx'
 import PermissionToggle from '../components/PermissionToggle.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { useFileTree, useFileContent } from '../hooks/useFiles.js'
+import { useFileTree, useFileContent, usePermissions } from '../hooks/useFiles.js'
 import api from '../api.js'
 
 export default function Home() {
   const { user } = useAuth()
   const { tree, loading: treeLoading, error: treeError, fetchTree } = useFileTree()
   const { content, loading: contentLoading, error: contentError, fetchContent } = useFileContent()
+  const { permissions, fetchPermissions, publicDirectory, toggleFile } = usePermissions()
   const [selectedPath, setSelectedPath] = useState('')
   const [searchResults, setSearchResults] = useState(null)
   const [publicTree, setPublicTree] = useState(null)
@@ -43,8 +44,9 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       fetchTree()
+      fetchPermissions()
     }
-  }, [fetchTree, user])
+  }, [fetchTree, fetchPermissions, user])
 
   useEffect(() => {
     if (!user) {
@@ -89,6 +91,23 @@ export default function Home() {
       setSearchResults([])
     }
   }, [])
+
+  const handlePublicDirectory = useCallback(async (dirPath, isPublic) => {
+    try {
+      await publicDirectory(dirPath, isPublic)
+      await fetchPermissions()
+    } catch (err) {
+      console.error('Failed to toggle directory:', err)
+    }
+  }, [publicDirectory, fetchPermissions])
+
+  const handleToggleFile = useCallback(async (filePath) => {
+    try {
+      await toggleFile(filePath)
+    } catch (err) {
+      console.error('Failed to toggle file:', err)
+    }
+  }, [toggleFile])
 
   const displayTree = user ? tree : publicTree
   const isImmersive = selectedPath.toLowerCase().endsWith('.html') && searchResults === null
@@ -167,6 +186,10 @@ export default function Home() {
                     tree={displayTree}
                     selectedPath={selectedPath}
                     onSelect={handleSelect}
+                    permissions={permissions}
+                    user={user}
+                    onPublicDirectory={handlePublicDirectory}
+                    onToggleFile={handleToggleFile}
                   />
                 )}
               </div>
@@ -218,6 +241,9 @@ export default function Home() {
                   tree={displayTree}
                   selectedPath={selectedPath}
                   onSelect={handleSelect}
+                  permissions={permissions}
+                  user={user}
+                  onPublicDirectory={handlePublicDirectory}
                 />
               )}
             </div>

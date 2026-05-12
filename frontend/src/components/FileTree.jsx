@@ -1,9 +1,29 @@
 import { useState } from 'react'
 
-function TreeNode({ node, selectedPath, onSelect, depth = 0, index = 0 }) {
+function collectAllFiles(node, files = []) {
+  if (node.type === 'file') {
+    files.push(node.path)
+  } else if (node.children) {
+    for (const child of node.children) {
+      collectAllFiles(child, files)
+    }
+  }
+  return files
+}
+
+function getDirStatus(node, permissions) {
+  const files = collectAllFiles(node)
+  const hasFiles = files.length > 0
+  const allPublic = hasFiles && files.every(p => permissions[p])
+  return { allPublic, hasFiles, fileCount: files.length }
+}
+
+function TreeNode({ node, selectedPath, onSelect, depth = 0, index = 0, permissions = {}, user, onPublicDirectory, onToggleFile }) {
   const [expanded, setExpanded] = useState(true)
+  const [toggling, setToggling] = useState(false)
   const isSelected = node.path === selectedPath
   const paddingLeft = depth * 14 + 10
+  const isPublic = permissions[node.path]
 
   const fileIcon = node.name.endsWith('.md') ? (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--accent-dim)', flexShrink: 0 }}>
@@ -20,11 +40,23 @@ function TreeNode({ node, selectedPath, onSelect, depth = 0, index = 0 }) {
     </svg>
   )
 
+  const handleToggleDirectory = async (e) => {
+    e.stopPropagation()
+    if (!onPublicDirectory || toggling) return
+    setToggling(true)
+    try {
+      const { allPublic } = getDirStatus(node, permissions)
+      await onPublicDirectory(node.path, !allPublic)
+    } finally {
+      setToggling(false)
+    }
+  }
+
   if (node.type === 'file') {
     return (
       <div
         onClick={() => onSelect(node.path)}
-        className="flex items-center gap-2 py-1.5 pr-3 text-sm cursor-pointer mx-1 transition-all duration-200"
+        className="flex items-center gap-2 py-1.5 pr-3 text-sm cursor-pointer mx-1 transition-all duration-200 group"
         style={{
           paddingLeft: `${paddingLeft}px`,
           borderRadius: 'var(--radius-sm)',
@@ -48,16 +80,48 @@ function TreeNode({ node, selectedPath, onSelect, depth = 0, index = 0 }) {
         }}
       >
         {fileIcon}
-        <span className="truncate text-[13px]">{node.name}</span>
+        {isPublic && (
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{
+              backgroundColor: 'var(--success)',
+              boxShadow: '0 0 4px var(--success)',
+            }}
+            title="PUBLIC"
+          />
+        )}
+        <span className="truncate text-[13px] flex-1">{node.name}</span>
+        {user && node.path && onToggleFile && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleFile(node.path)
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[10px] px-1.5 py-0.5 rounded shrink-0"
+            style={{
+              backgroundColor: isPublic ? 'rgba(90, 154, 106, 0.1)' : 'var(--bg-tertiary)',
+              color: isPublic ? 'var(--success)' : 'var(--text-muted)',
+              border: `1px solid ${isPublic ? 'rgba(90, 154, 106, 0.3)' : 'var(--border)'}`,
+              fontFamily: 'var(--font-mono)',
+              cursor: 'pointer',
+            }}
+            title={isPublic ? '当前 PUBLIC，点击设为 PRIVATE' : '当前 PRIVATE，点击设为 PUBLIC'}
+          >
+            {isPublic ? 'PUBLIC' : 'PRIVATE'}
+          </button>
+        )}
       </div>
     )
   }
+
+  const { allPublic, hasFiles } = getDirStatus(node, permissions)
+  const btnLabel = allPublic ? 'PUBLIC' : 'PRIVATE'
 
   return (
     <div className="animate-fade-in" style={{ animationDelay: `${index * 20}ms` }}>
       <div
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 py-1.5 pr-3 text-sm cursor-pointer mx-1 transition-all duration-200"
+        className="flex items-center gap-1.5 py-1.5 pr-3 text-sm cursor-pointer mx-1 transition-all duration-200 group"
         style={{
           paddingLeft: `${paddingLeft}px`,
           borderRadius: 'var(--radius-sm)',
@@ -82,7 +146,33 @@ function TreeNode({ node, selectedPath, onSelect, depth = 0, index = 0 }) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--accent-dim)', flexShrink: 0 }}>
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
         </svg>
-        <span className="font-medium truncate text-[13px]">{node.name}</span>
+        {allPublic && hasFiles && (
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{
+              backgroundColor: 'var(--success)',
+              boxShadow: '0 0 4px var(--success)',
+            }}
+            title="全部 PUBLIC"
+          />
+        )}
+        <span className="font-medium truncate text-[13px] flex-1">{node.name}</span>
+        {user && node.path && (
+          <button
+            onClick={handleToggleDirectory}
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[10px] px-1.5 py-0.5 rounded shrink-0"
+            style={{
+              backgroundColor: allPublic ? 'rgba(90, 154, 106, 0.1)' : 'var(--bg-tertiary)',
+              color: allPublic ? 'var(--success)' : 'var(--text-muted)',
+              border: `1px solid ${allPublic ? 'rgba(90, 154, 106, 0.3)' : 'var(--border)'}`,
+              fontFamily: 'var(--font-mono)',
+              cursor: toggling ? 'not-allowed' : 'pointer',
+            }}
+            title={allPublic ? '当前全部 PUBLIC，点击设为 PRIVATE' : '当前存在 PRIVATE，点击全部设为 PUBLIC'}
+          >
+            {toggling ? '...' : btnLabel}
+          </button>
+        )}
       </div>
       {expanded && node.children?.map((child, i) => (
         <TreeNode
@@ -92,13 +182,17 @@ function TreeNode({ node, selectedPath, onSelect, depth = 0, index = 0 }) {
           onSelect={onSelect}
           depth={depth + 1}
           index={i}
+          permissions={permissions}
+          user={user}
+          onPublicDirectory={onPublicDirectory}
+          onToggleFile={onToggleFile}
         />
       ))}
     </div>
   )
 }
 
-export default function FileTree({ tree, selectedPath, onSelect }) {
+export default function FileTree({ tree, selectedPath, onSelect, permissions = {}, user, onPublicDirectory, onToggleFile }) {
   if (!tree) {
     return (
       <div className="p-4 text-sm animate-fade-in" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -112,7 +206,15 @@ export default function FileTree({ tree, selectedPath, onSelect }) {
 
   return (
     <div className="overflow-y-auto h-full py-3">
-      <TreeNode node={tree} selectedPath={selectedPath} onSelect={onSelect} />
+      <TreeNode
+        node={tree}
+        selectedPath={selectedPath}
+        onSelect={onSelect}
+        permissions={permissions}
+        user={user}
+        onPublicDirectory={onPublicDirectory}
+        onToggleFile={onToggleFile}
+      />
     </div>
   )
 }

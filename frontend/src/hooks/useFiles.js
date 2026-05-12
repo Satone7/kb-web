@@ -45,3 +45,34 @@ export function useFileContent(path) {
 
   return { content, loading, error, fetchContent }
 }
+
+export function usePermissions() {
+  const [permissions, setPermissions] = useState({})
+  const [loading, setLoading] = useState(false)
+
+  const fetchPermissions = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/permissions/')
+      setPermissions(res.data)
+    } catch (err) {
+      setPermissions({})
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const publicDirectory = useCallback(async (dirPath, isPublic) => {
+    const res = await api.post(`/permissions/directory/${encodeURIComponent(dirPath)}`, { public: isPublic })
+    return res.data
+  }, [])
+
+  const toggleFile = useCallback(async (filePath) => {
+    const current = permissions[filePath] || false
+    const res = await api.post(`/permissions/${encodeURIComponent(filePath)}`, { public: !current })
+    setPermissions(prev => ({ ...prev, [filePath]: res.data.public }))
+    return res.data
+  }, [permissions])
+
+  return { permissions, loading, fetchPermissions, publicDirectory, toggleFile }
+}
