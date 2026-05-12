@@ -13,6 +13,10 @@ if (!fs.existsSync(config.DATA_DIR)) {
 }
 
 app.use(express.json());
+
+// Trust proxy when behind Cloudflare Tunnel / reverse proxy
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: config.NODE_ENV === 'development' ? 'http://localhost:5173' : false,
   credentials: true,
@@ -25,7 +29,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: config.NODE_ENV === 'production',
+    secure: config.SESSION_COOKIE_SECURE,
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   },

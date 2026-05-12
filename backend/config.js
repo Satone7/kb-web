@@ -7,6 +7,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret-in-prod
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+const SESSION_COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE === 'true' || (NODE_ENV === 'production' && process.env.SESSION_COOKIE_SECURE !== 'false');
 
 module.exports = {
   KB_ROOT: path.resolve(KB_ROOT),
@@ -16,4 +17,5 @@ module.exports = {
   ADMIN_USERNAME,
   ADMIN_PASSWORD,
   DATA_DIR: path.join(__dirname, 'data'),
+  SESSION_COOKIE_SECURE,
 };
