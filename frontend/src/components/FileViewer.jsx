@@ -1,4 +1,3 @@
-import { useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import PermissionToggle from './PermissionToggle.jsx'
 
@@ -15,26 +14,11 @@ function hasOwnStyles(html) {
 }
 
 function IframeViewer({ html, title }) {
-  const iframeRef = useRef(null)
-
-  const blobUrl = useMemo(() => {
-    if (!html) return ''
-    const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
-    return URL.createObjectURL(blob)
-  }, [html])
-
-  useEffect(() => {
-    return () => {
-      if (blobUrl) URL.revokeObjectURL(blobUrl)
-    }
-  }, [blobUrl])
-
   return (
     <iframe
-      ref={iframeRef}
-      src={blobUrl}
+      srcDoc={html}
       className="w-full h-full"
-      style={{ border: 'none', display: 'block' }}
+      style={{ border: 'none', display: 'block', backgroundColor: '#fff' }}
       sandbox="allow-scripts allow-same-origin"
       title={title || 'Document'}
     />
