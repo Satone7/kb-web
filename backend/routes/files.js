@@ -1,5 +1,6 @@
 const express = require('express');
-const { getFileTree, readFile, getFileInfo } = require('../services/fileService');
+const fs = require('fs');
+const { getFileTree, readFile, getFileInfo, resolveSafePath } = require('../services/fileService');
 const { renderMarkdown, renderHTML } = require('../services/renderService');
 const { searchFiles } = require('../services/searchService');
 const { checkAccess } = require('../middleware/checkAccess');
@@ -37,6 +38,11 @@ router.get('/content/*path', checkAccess, (req, res) => {
         raw,
         info,
       });
+    } else if (info.ext === '.pdf') {
+      res.json({
+        type: 'pdf',
+        info,
+      });
     } else {
       res.json({ type: 'unknown', raw, info });
     }
@@ -50,6 +56,26 @@ router.get('/info/*path', checkAccess, (req, res) => {
   try {
     const filePath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path;
     res.json(getFileInfo(filePath));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Stream raw binary file (for PDF, images, etc.)
+router.get('/raw/*path', checkAccess, (req, res) => {
+  try {
+    const filePath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path;
+    const safePath = resolveSafePath(filePath);
+    const info = getFileInfo(filePath);
+
+    const mimeTypes = {
+      '.pdf': 'application/pdf',
+    };
+    const contentType = mimeTypes[info.ext] || 'application/octet-stream';
+
+    res.setHeader('Content-Type', contentType);
+    const stream = fs.createReadStream(safePath);
+    stream.pipe(res);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

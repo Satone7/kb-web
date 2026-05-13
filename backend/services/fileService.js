@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config');
 
-const ALLOWED_EXTENSIONS = new Set(['.md', '.html']);
+const ALLOWED_EXTENSIONS = new Set(['.md', '.html', '.pdf']);
 
 function isAllowedFile(filename) {
   return ALLOWED_EXTENSIONS.has(path.extname(filename).toLowerCase());

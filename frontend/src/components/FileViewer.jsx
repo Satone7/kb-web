@@ -115,62 +115,108 @@ export default function FileViewer({ content, loading, error, immersive }) {
     )
   }
 
+  const isPdf = content.type === 'pdf'
+
   return (
-    <div className="h-full overflow-y-auto animate-fade-in" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <div className="max-w-3xl mx-auto px-8 py-10">
-        {/* Document Header */}
-        <div className="flex items-start justify-between gap-4 mb-8 pb-6"
-          style={{ borderBottom: '1px solid var(--border)' }}
-        >
-          <div className="min-w-0">
-            <h1
-              className="text-2xl font-bold leading-tight"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
-            >
-              {content.info?.name?.replace(/\.md$|\.html$/, '')}
-            </h1>
-            <p className="text-xs mt-2 flex items-center gap-2"
-              style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}
-            >
-              <span className="inline-block w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--accent-dim)' }} />
-              {content.info?.path}
-            </p>
-          </div>
-          {user && content.info?.path && (
-            <div className="shrink-0 pt-1">
-              <PermissionToggle filePath={content.info.path} />
+    <div
+      className={`h-full animate-fade-in ${isPdf ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'}`}
+      style={{ backgroundColor: 'var(--bg-primary)' }}
+    >
+      {isPdf ? (
+        <>
+          {/* Document Header */}
+          <div className="px-8 pt-10 pb-4 shrink-0"
+            style={{ borderBottom: '1px solid var(--border)' }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1
+                  className="text-2xl font-bold leading-tight"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+                >
+                  {content.info?.name?.replace(/\.pdf$/i, '')}
+                </h1>
+                <p className="text-xs mt-2 flex items-center gap-2"
+                  style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}
+                >
+                  <span className="inline-block w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--accent-dim)' }} />
+                  {content.info?.path}
+                </p>
+              </div>
+              {user && content.info?.path && (
+                <div className="shrink-0 pt-1">
+                  <PermissionToggle filePath={content.info.path} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Content */}
-        {content.type === 'markdown' && (
-          <div
-            className="markdown-body animate-fade-in-up"
-            dangerouslySetInnerHTML={{ __html: content.html }}
-          />
-        )}
+          {/* PDF Viewer */}
+          <div className="flex-1 min-h-0 p-4">
+            <embed
+              src={`/api/files/raw/${encodeURIComponent(content.info.path)}`}
+              type="application/pdf"
+              className="w-full h-full rounded-lg"
+              style={{ border: '1px solid var(--border)', display: 'block' }}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="max-w-3xl mx-auto px-8 py-10">
+          {/* Document Header */}
+          <div className="flex items-start justify-between gap-4 mb-8 pb-6"
+            style={{ borderBottom: '1px solid var(--border)' }}
+          >
+            <div className="min-w-0">
+              <h1
+                className="text-2xl font-bold leading-tight"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+              >
+                {content.info?.name?.replace(/\.md$|\.html$/, '')}
+              </h1>
+              <p className="text-xs mt-2 flex items-center gap-2"
+                style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}
+              >
+                <span className="inline-block w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--accent-dim)' }} />
+                {content.info?.path}
+              </p>
+            </div>
+            {user && content.info?.path && (
+              <div className="shrink-0 pt-1">
+                <PermissionToggle filePath={content.info.path} />
+              </div>
+            )}
+          </div>
 
-        {content.type === 'html' && (
-          hasOwnStyles(content.html) ? (
-            <IframeViewer html={content.html} title={content.info?.name} />
-          ) : (
+          {/* Content */}
+          {content.type === 'markdown' && (
             <div
-              className="html-raw animate-fade-in-up"
+              className="markdown-body animate-fade-in-up"
               dangerouslySetInnerHTML={{ __html: content.html }}
             />
-          )
-        )}
+          )}
 
-        {/* Footer divider */}
-        <div className="mt-16 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
-          <p className="text-[10px] tracking-wider uppercase text-center"
-            style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}
-          >
-            End of Document
-          </p>
+          {content.type === 'html' && (
+            hasOwnStyles(content.html) ? (
+              <IframeViewer html={content.html} title={content.info?.name} />
+            ) : (
+              <div
+                className="html-raw animate-fade-in-up"
+                dangerouslySetInnerHTML={{ __html: content.html }}
+              />
+            )
+          )}
+
+          {/* Footer divider */}
+          <div className="mt-16 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
+            <p className="text-[10px] tracking-wider uppercase text-center"
+              style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}
+            >
+              End of Document
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
